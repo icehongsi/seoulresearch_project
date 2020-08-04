@@ -1,0 +1,69 @@
+library(dplyr)
+library(moments)
+library(corrplot)
+library(MASS)
+library(forcats)
+library(car)
+library(leaps)
+
+#retrieve .csv Data and Name into Variables
+automobile = read.csv(file.choose(), header = F, na.strings = "?")
+names(automobile) = c("symboling", "normalizedLoss", "make", "fuelType", "aspiration", "numofDoors",
+                      "bodyStyle", "driveWheels", "engineLocation", "wheelBase", "length", "width", "height",
+                      "curb_weight", "engineType", "numofCylinders","engineSize", "fuelSystem", "bore", "stroke",
+                      "compressionRatio", "horsePower", "peakRpm", "cityMpg", "highwayMpg", "price")
+
+automobile = na.omit(automobile) #eliminate missing values
+automobile[] = lapply(automobile, function(x) if(is.factor(x)) droplevels(x) else x) #drop misused factors
+automobile = automobile[, !(colnames(automobile)) %in% c("engineLocation")] #drop useless variable
+summary(automobile)
+lm.model1 = lm(normalizedLoss ~ .-symboling, data = automobile) #Make a Regression Model with all Variables
+summary(lm.model1)
+
+#Making Binary Variable
+automobile$make = fct_collapse(automobile$make,
+                               japan = c("honda", "mazda", "mitsubishi", "nissan", "subaru", "toyota"),
+                               other = as.vector(levels(automobile$make)[!levels(automobile$make) %in% c("honda", "mazda", "mitsubishi", "nissan", "subaru", "toyota")])
+)
+automobile$driveWheels = fct_collapse(automobile$driveWheels,
+                                      rwd = c("rwd"),
+                                      other = c("fwd", "4wd"))
+
+auto.rev = automobile[, colnames(automobile) %in% c("normalizedLoss", "make", "driveWheels", "height")]
+
+set.seed(2000)
+n = nrow(auto.rev)
+
+#Separating Training Set and Test Set
+training_idx = sample(1:n, n * .80)
+test_idx = setdiff(1:n, training_idx)
+
+#Model 2 for Final Variable Selection
+lm.model2 = lm(normalizedLoss ~ ., data = auto.rev[training_idx,])
+summary(lm.model2)
+vif(lm.model2)
+
+par(mfrow = c(2,2))
+plot(lm.model2) # Validation of Independent Variables of the regression variable (Variance Inflation Factor)
+
+# Final Simple Regression Model
+simple.reg = lm(normalizedLoss ~ height, data = auto.rev[training_idx,])
+summary(simple.reg)
+#Test with True Value
+true_value = c(auto.rev$normalizedLoss[test_idx])
+predicted_data = c(predict(simple.reg, auto.rev[test_idx,]))
+
+#Data Visualization
+par(mfrow = c(2,2))
+plot(simple.reg)
+mean(simple.reg$resid)
+par(mfrow = c(1,1))
+plot(normalizedLoss ~ height, type = "n", data = auto.rev[test_idx,], main = "True Value and Regression Line")
+legend("topright", pch = c("??", "??"), col = c("red", "blue"), c("True Value", "Regression Line"))
+points(normalizedLoss ~ height, data = auto.rev[test_idx,], col = "red")
+abline(simple.reg, col = "blue")
+
+#Calculating Mean Squared Error
+mse = sum((true_value - predicted_data)^2) /length(test_idx)
+names(mse) = "MSE"
+mse
