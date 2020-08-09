@@ -7,19 +7,20 @@ class Exceptions(Exception):
         return "Exceptions occurred"
 
 class getAddress:
-    def __init__(self):
-        file_dir = "C:/Users/Youngju Hong/Documents/projectfile/"
-        self.new_subway_info = pd.read_csv(f"{file_dir}서울특별시 노선별 지하철역 정보(신규).csv",  encoding = 'cp949')
-        del self.new_subway_info["전철명명(영문)"]
-        self.new_subway_info["호선"] = self.new_subway_info["호선"].apply(self.eliminate_zero)
-        self.new_subway_info["호선 + 역명"] = self.new_subway_info["호선"].astype(str) + " " + self.new_subway_info["전철역명"] + "역"
-        self.new_subway_info["전철역"] = self.new_subway_info["전철역명"].astype(str) + "역"
-
+    def __init__(self, forExcelFile = True):
         self.url = "http://api.vworld.kr/req/search?service=search&request=search&\
-                                &size=1&page=1&query={}&type=place&format=json&errorformat=json&\
-                                &key=8FEEBFAF-A069-393A-B997-411AA9884913"
-
-        self.__call__()
+                                        &size=5&page=1&query={}&type=place&format=json&errorformat=json&\
+                                        &key=8FEEBFAF-A069-393A-B997-411AA9884913"
+        if forExcelFile:
+            file_dir = "C:/Users/Youngju Hong/Documents/projectfile/"
+            self.new_subway_info = pd.read_csv(f"{file_dir}서울특별시 노선별 지하철역 정보(신규).csv",  encoding = 'cp949')
+            del self.new_subway_info["전철명명(영문)"]
+            self.new_subway_info["호선"] = self.new_subway_info["호선"].apply(self.eliminate_zero)
+            self.new_subway_info["호선 + 역명"] = self.new_subway_info["호선"].astype(str) + " " + self.new_subway_info["전철역명"] + "역"
+            self.new_subway_info["전철역"] = self.new_subway_info["전철역명"].astype(str) + "역"
+            self.__call__()
+        else:
+            self.addressretrieveinterface()
 
     def __call__(self):
         address_list = {}
@@ -34,6 +35,18 @@ class getAddress:
                 #print(address_list)
 
         pd.DataFrame.from_dict(address_list, orient = "index").to_excel("Addresses.xlsx")
+
+    def addressretrieveinterface(self):
+        while True:
+            print("Input an Address for search: type nothing for quit", end = "")
+            temp_address = input()
+            result = requests.get(self.url.format(temp_address)).json()["response"]
+            if result["status"] in ("NOT_FOUND", "ERROR"):
+                print("Result not found")
+            else:
+
+
+
 
     def eliminate_parentheses(self, name):
         if name.find("(") != -1:
@@ -65,10 +78,3 @@ class getAddress:
 
 
 getAddress()
-
-#category=050101
-#rint(result.json()["response"]["result"]["items"])#["response"]["result"]["items"])#["response"]["result"]["items"][0]["address"]["parcel"])
-
-
-
-#result = requests.get("""http://api.vworld.kr/req/search?service=search&request=search&page=1&query={}&type=place&format=json&errorformat=json&key=8FEEBFAF-A069-393A-B997-411AA9884913""".format(new_subway_info.loc[i, "전철역명"]))
