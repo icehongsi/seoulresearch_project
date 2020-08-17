@@ -7,6 +7,7 @@ class address_to_code:
         self.df = pd.read_excel("동코드.xlsx")
 
     def find_row_number(self, keyword, category):
+        pass
 
     def import_data(self):
         while True:
