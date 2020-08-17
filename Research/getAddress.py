@@ -85,7 +85,7 @@ class getAddress:
 
                     print("-" * 50)
 
-        searched_address.to_excel("searched_address.xlsx")
+        searched_address.transpose().to_excel("searched_address.xlsx")
 
     def eliminate_parentheses(self, name):
         if name.find("(") != -1:
