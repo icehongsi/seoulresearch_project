@@ -14,47 +14,77 @@ library(corrplot)
 library(RColorBrewer)
 
 data = read_excel(file.choose())
-data[,c(9:13)] = lapply(data[,c(9:13)], factor)
+data[,c(3:8)] = lapply(data[,c(3:8)], factor)
 data = na.omit(data)
 data %>% glimpse()
 
-data %>% mutate_at(vars(price), as.double)
-
-wwdata[,14] = lapply(data[,14], numeric)
-
-data.usa = data[,c(8,14:51)]
-data.vi = data[,c(9,14:51)]
-data.ch = data[,c(10,14:51)]
-data.jp = data[,c(11,14:51)]
-data.tw = data[,c(12,14:51)]
-data.usa
-data.tw$univ_count
-
-manova(data[,c(8:12)] ~ data[,c(14:51)])
-
-data %>% glimpse()
+data.canada = data[,c(3,9:31)]
+data.china = data[,c(4,9:31)]
+data.japan = data[,c(5,9:31)]
+data.taiwan = data[,c(6,9:31)]
+data.us = data[,c(7,9:31)]
+data.vietnam = data[,c(8,9:31)]
+data.us
+data.ch
 corrplot(as.matrix(cor(data[,c(38:44)])))
 corrplot(as.matrix(cor(dplyr::select_if(data, is.numeric) %>% na.omit())), is.corr = FALSE)
 
 
+data.us
+glm.us
+glm.us = glm(us_hsp ~ ., data = data.us, family = binomial)
+glm.ch = glm(china_hsp ~ ., data = data.china, family = binomial)
+glm.ca = glm(canada_hsp ~ ., data = data.canada, family = binomial)
+glm.vi = glm(vietnam_hsp ~ ., data = data.vietnam, family = binomial)
+glm.jp = glm(japan_hsp ~ ., data = data.japan, family = binomial)
+glm.tw = glm(taiwan_hsp ~., data = data.taiwan, family = binomial)
+
+glm.us %>% summary()
+glm.us$model
+
+us.aic.result = stepAIC(glm.us, direction = "both") %>% plot()
+#us.aic.result# %>% summary()
+ch.aic.result = stepAIC(glm.ch, direction = "both")
+ca.aic.result = stepAIC(glm.ca, direction = "both")
+vi.aic.result = stepAIC(glm.vi, direction = "both")
+jp.aic.result = stepAIC(glm.jp, direction = "both")
+tw.aic.result = stepAIC(glm.tw, direction = "both")
+
+us_x = model.matrix(us_hsp ~ . -1, data.us)
+y = data.us$us_hsp
+ad_glmnet_fit = glmnet(us_x, y, family = "binomial")
+plot(ad_glmnet_fit)
+
+cv.glmnet.fit = cv.glmnet(us_x, y, family = "binomial")
+plot(cv.glmnet.fit)
+cv.glmnet.fit
 
 
 
-ch.tree = rpart(hot_ch ~ ., data = data.ch)
 
+
+
+
+gbm(us_hsp ~., data = data.us, distribution = "bernoulli", n.trees = 50000, cv.folds = 3, verbose = TRUE)
+
+
+ch.tree = rpart(china_hsp ~ ., data = data.ch)
 opar = par(mfrow = c(1,1), xpd = NA)
 ch.tree %>% printcp()
 ch.tree %>% plot()
 text(ch.tree, use.n = T)
 par(opar)
 
-data.ch.rf = randomForest(hot_ch ~ ., data = data.ch)
+data.ch.rf = randomForest(china_hsp ~ ., data = data.ch)
 data.ch.rf
 plot(data.ch.rf)
-
 tmp = importance(data.ch.rf)
 head(round(tmp[order(-tmp[,1]), 1, drop = F], 2), n = 10)
 varImpPlot(data.ch.rf)
+
+
+
+
 
 data = read_excel(file.choose())
 
